@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trip Event Dashboard</title>
+    <!-- Add SockJS and Stomp.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script>
+        let stompClient;
+        let tripEvent = null;
+        window.onload = function() {
+            // Connect to WebSocket endpoint using SockJS and STOMP
+            const socket = new SockJS('/ws');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                stompClient.subscribe('/topic/tripCreated', function(message) {
+                    tripEvent = JSON.parse(message.body);
+                    console.log(tripEvent);
+                    document.getElementById('eventInfo').innerText =
+                        'Trip ID: ' + tripEvent.tripId + '\n' +
+                        'Passenger: ' + tripEvent.userId + '\n' +
+                        'Pickup: ' + tripEvent.startLocation + '\n' +
+                        'Dropoff: ' + tripEvent.endLocation;
+                });
+            });
+        };
+
+        function callDriverApi() {
+            fetch('/api/drivers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ driverId: '123456', tripId: tripEvent.tripId })
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert('API Response: ' + JSON.stringify(data));
+            })
+            .catch(error => {
+                alert('API Error: ' + error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Trip Event Information</h1>
+    <pre id="eventInfo">Waiting for trip event...</pre>
+    <button onclick="callDriverApi()">Call Driver API</button>
+</body>
+</html>
